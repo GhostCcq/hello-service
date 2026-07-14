@@ -21,3 +21,12 @@ jobs:
 
       - name: Build
         run: mvn package
+        
+      - name: Run Spring Boot
+        run: |
+          java -jar target/*.jar &
+          sleep 20
+          
+      - name: Health Check
+        run: |
+          curl http://localhost:8080/health          
