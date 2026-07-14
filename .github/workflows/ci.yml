@@ -22,11 +22,19 @@ jobs:
       - name: Build
         run: mvn package
         
+      - name: Show Manifest
+        run: |
+          unzip -p target/*.jar META-INF/MANIFEST.MF  
+          
+      - name: Check Target
+        run: |
+          ls -lh target
+          
       - name: Run Spring Boot
         run: |
           java -jar target/*.jar &
           sleep 20
-
+          
       -  name: Run Ps
          run: |
            ps -ef| grep java
