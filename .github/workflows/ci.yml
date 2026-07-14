@@ -30,15 +30,42 @@ jobs:
         run: |
           ls -lh target
           
-      - name: Run Spring Boot
+      - name: Build Docker Image
         run: |
-          java -jar target/*.jar &
-          sleep 20
+          docker build -t hello-service:latest .
           
-      -  name: Run Ps
-         run: |
-           ps -ef| grep java
-          
-      - name: Health Check
+      - name: Show Images
+        run: docker images
+
+      - name: Run Docker Container
         run: |
-          curl http://localhost:8080/health          
+          docker run -d \
+            --name hello \
+            -p 8080:8080 \
+            hello-service:latest
+
+      - name: Check Container
+        run: |
+          docker ps
+    
+      - name: Wait for Application
+        run: |
+          for i in {1..30}; do
+            if curl -fs http://localhost:8080/health; then
+              echo "Application is ready!"
+              exit 0
+            fi
+          
+            echo "Waiting..."
+            sleep 2
+          done
+          
+          echo "Application failed to start"
+          exit 1 
+
+      - name: Dump Logs
+        if: failure()
+        run: |
+          docker logs hello
+        
+
