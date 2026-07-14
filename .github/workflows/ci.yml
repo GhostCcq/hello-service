@@ -21,3 +21,10 @@ jobs:
 
       - name: Build
         run: mvn package
+        
+      - name: Check Environment
+        run: |
+          java -version
+          mvn -version
+          docker --version
+          git --version
