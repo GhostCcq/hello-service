@@ -1,0 +1,34 @@
+name: Sync to Repository B
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add target repository
+        env:
+          PAT: ${{ secrets.B_PAT }}
+        run: |
+          git remote add target https://x-access-token:${PAT}@github.com/<B_OWNER>/<B_REPO>.git
+
+      - name: Push main branch
+        run: |
+          git push target main:main
