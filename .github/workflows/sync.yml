@@ -1,56 +1,82 @@
-name: Sync to Repository B
+name: Sync Repository
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   sync:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Source Repo
+
+      #################################################################
+      # Checkout Source Repository (A)
+      #################################################################
+      - name: Checkout Source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          path: source
 
-      - name: Prepare Source Files
-        run: |
-          mkdir /tmp/source
+      #################################################################
+      # Checkout Target Repository (B)
+      #################################################################
+      - name: Checkout Target
+        uses: actions/checkout@v4
+        with:
+          repository: GhostC-SQ/hello
+          token: ${{ secrets.B_PAT }}
+          path: target
 
-          rsync -av \
-            --exclude='.git' \
-            --exclude='.github' \
-            ./ /tmp/source/
-
-      - name: Clone Target Repo
-        env:
-          PAT: ${{ secrets.B_PAT }}
-        run: |
-          git clone \
-            https://x-access-token:${PAT}@github.com/GhostC-SQ/hello.git \
-            /tmp/target
-
+      #################################################################
+      # Sync Files
+      #################################################################
       - name: Sync Files
         run: |
-          rsync -av --delete \
-            /tmp/source/ \
-            /tmp/target/
 
-      - name: Commit And Push
-        env:
-          PAT: ${{ secrets.B_PAT }}
+          shopt -s dotglob
+
+          # 删除旧文件（保留 Git）
+          find target -mindepth 1 \
+            ! -path "target/.git*" \
+            ! -path "target/.github*" \
+            -exec rm -rf {} +
+
+          # 拷贝所有源码
+          rsync -av \
+            --exclude ".git" \
+            --exclude ".github" \
+            source/ target/
+
+      #################################################################
+      # Commit
+      #################################################################
+      - name: Commit Changes
+        working-directory: target
         run: |
-          cd /tmp/target
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add .
 
-          git diff --cached --quiet && exit 0
+          if git diff --cached --quiet; then
+            echo "No changes."
+            exit 0
+          fi
 
           git commit -m "sync from source repository"
 
-          git push origin main
+      #################################################################
+      # Push
+      #################################################################
+      - name: Push
+        working-directory: target
+        run: |
+
+          git push origin HEAD:main
