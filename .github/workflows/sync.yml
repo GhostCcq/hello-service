@@ -9,26 +9,48 @@ jobs:
   sync:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-
     steps:
-      - name: Checkout source repository
+      - name: Checkout Source Repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Configure Git
+      - name: Prepare Source Files
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir /tmp/source
 
-      - name: Add target repository
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            ./ /tmp/source/
+
+      - name: Clone Target Repo
         env:
           PAT: ${{ secrets.B_PAT }}
         run: |
-          git remote add target https://x-access-token:${PAT}@github.com/GhostC-SQ/hello.git
+          git clone \
+            https://x-access-token:${PAT}@github.com/GhostC-SQ/hello.git \
+            /tmp/target
 
-      - name: Push main branch
+      - name: Sync Files
         run: |
-          git push target main:main
+          rsync -av --delete \
+            /tmp/source/ \
+            /tmp/target/
+
+      - name: Commit And Push
+        env:
+          PAT: ${{ secrets.B_PAT }}
+        run: |
+          cd /tmp/target
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add .
+
+          git diff --cached --quiet && exit 0
+
+          git commit -m "sync from source repository"
+
+          git push origin main
