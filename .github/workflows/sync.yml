@@ -27,7 +27,7 @@ jobs:
         env:
           PAT: ${{ secrets.B_PAT }}
         run: |
-          git remote add target https://x-access-token:${PAT}@github.com/<B_OWNER>/<B_REPO>.git
+          git remote add target https://x-access-token:${PAT}@@github.com:GhostC-SQ/hello.git
 
       - name: Push main branch
         run: |
